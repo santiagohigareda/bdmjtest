@@ -28,7 +28,8 @@ def jtest_np(
         X: np.ndarray,
         Z: np.ndarray,
         B: int = 999,
-        boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "residuals",
+        boot_method: Literal["residuals","semiparametric", "wild", "parametric", "pairs"] = "residuals",
+        seed: Optional[Union[int, np.random.Generator]] = None,
         **kwargs
 ) -> JtestResults:
 
@@ -39,13 +40,14 @@ def jtest_np(
     boot_tails: str = kwargs.get('boot_tails', 'one')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
-    y_f = np.asarray(y).ravel()
+    rng = np.random.default_rng(seed)
+        
+    y_f = np.asarray(y, dtype=float).ravel()
     N = len(y_f)
     
     X_mat = np.atleast_2d(X).T if np.ndim(X) == 1 else np.asarray(X)
     Z_mat = np.atleast_2d(Z).T if np.ndim(Z) == 1 else np.asarray(Z)
 
-    indices = np.arange(len(y_f))
     ones_col = np.ones((N,1))
 
     A1 = np.column_stack([X_mat, ones_col])
@@ -65,7 +67,7 @@ def jtest_np(
     n_aug, p_aug = A_aug.shape
     dof_aug = n_aug - p_aug
 
-    dof_aug = len(y_f) - A_aug.shape[1]
+    dof_aug = N - A_aug.shape[1]
     mse_aug = ssr_aug / dof_aug
     cov_aug = mse_aug * np.linalg.pinv(A_aug.T @ A_aug)
     se_obs = np.sqrt(cov_aug[-1, -1])
@@ -112,7 +114,7 @@ def jtest_np(
         try:
             if boot_method == 'pairs':
                 
-                b_idx = np.random.choice(indices, size=N, replace=True)
+                b_idx = rng.choice(N, size=N, replace=True)
                 y_b, X_mat_b, Z_mat_b = y_f[b_idx], X_mat[b_idx], Z_mat[b_idx]
                 
                 A2_b = np.column_stack([Z_mat_b, ones_col])
@@ -132,21 +134,21 @@ def jtest_np(
             else:
                 if boot_method == 'wild':
                     if res_distribution == 'rademacher':
-                        v = np.random.choice([-1.0, 1.0], size=N, replace=True)
+                        v = rng.choice([-1.0, 1.0], size=N, replace=True)
                     elif res_distribution == 'mammen':
                         v_vals = [-(np.sqrt(5)-1) / 2, (np.sqrt(5)+1) / 2]
                         v_probs = [(np.sqrt(5) + 1) / (2 * np.sqrt(5)), (np.sqrt(5) - 1) / (2 * np.sqrt(5))]
-                        v = np.random.choice(v_vals, size=N, replace=True, p=v_probs)
+                        v = rng.choice(v_vals, size=N, replace=True, p=v_probs)
                     else:
                         raise ValueError('Supported distributions are "rademacher" and "mammen"')
                     y_star = y1_h + res_scaled * v
 
                 elif boot_method in ['residuals', 'semiparametric']:
-                    b_idx = np.random.choice(indices, size=N, replace=True)
+                    b_idx = rng.choice(N, size=N, replace=True)
                     y_star = y1_h + res_scaled[b_idx]
 
                 elif boot_method == 'parametric':
-                    y_star = y1_h + np.random.normal(0, res_std, size=N)
+                    y_star = y1_h + rng.normal(loc=0.0, scale=res_std, size=N)
 
                 coeffs2_b, _, _, _ = np.linalg.lstsq(A2, y_star, rcond=None)
                 y2_h_b = A2 @ coeffs2_b
@@ -193,6 +195,7 @@ def jtest_sm(
     Z: np.ndarray,
     B: int = 999,
     boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "residuals",
+    seed: Optional[Union[int, np.random.Generator]] = None,
     **kwargs
 ) -> JtestResults:
     
@@ -201,6 +204,8 @@ def jtest_sm(
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
     boot_tails: str = kwargs.get('boot_tails', 'one')
+
+    rng = np.random.default_rng(seed)
 
     y_f = np.asarray(y, dtype=float).ravel()
     N = len(y_f)
@@ -261,7 +266,7 @@ def jtest_sm(
     for b in range(B):
         try:
             if boot_method == 'pairs':
-                b_idx = np.random.choice(indices, size=N, replace=True)
+                b_idx = rng.choice(N, size=N, replace=True)
                 y_b, X_mat_b, Z_mat_b = y_f[b_idx], X_mat[b_idx], Z_mat[b_idx]
 
                 A2_b = np.concatenate([Z_mat_b, ones_col], axis=1)
@@ -276,21 +281,21 @@ def jtest_sm(
             else:
                 if boot_method == 'wild':
                     if res_distribution == 'rademacher':
-                        v = np.random.choice([-1.0, 1.0], size=N, replace=True)
+                        v = rng.choice([-1.0, 1.0], size=N, replace=True)
                     elif res_distribution == 'mammen':
                         v_vals = [-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2]
                         v_probs = [(np.sqrt(5) + 1) / (2 * np.sqrt(5)), (np.sqrt(5) - 1) / (2 * np.sqrt(5))]
-                        v = np.random.choice(v_vals, size=N, replace=True, p=v_probs)
+                        v = rng.choice(v_vals, size=N, replace=True, p=v_probs)
                     else:
                         raise ValueError('Supported wild distributions: "rademacher" or "mammen".')
                     y_star = y1_h + res_scaled * v
 
                 elif boot_method in ['residuals', 'semiparametric']:
-                    b_idx = np.random.choice(indices, size=N, replace=True)
+                    b_idx = rng.choice(N, size=N, replace=True)
                     y_star = y1_h + res_scaled[b_idx]
 
                 elif boot_method == 'parametric':
-                    y_star = y1_h + np.random.normal(0, res_std, size=N)
+                    y_star = y1_h + rng.normal(loc=0.0, scale=res_std, size=N)
 
                 m2_b = sm.OLS(y_star, A2).fit()
                 y2_h_b = m2_b.fittedvalues
@@ -333,6 +338,7 @@ def jtest_scipy(
     func_Z: Callable,
     B: int = 999,
     boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "pairs",
+    seed: Optional[Union[int, np.random.Generator]] = None,
     **kwargs: Any
 ) -> JtestResults:
 
@@ -342,30 +348,37 @@ def jtest_scipy(
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     boot_tails: str = kwargs.get('boot_tails', 'one')
 
+    rng = np.random.default_rng(seed)
+
     y_f = np.asarray(y, dtype=np.float64).ravel()
     N = len(y_f)
     X_mat = np.asarray(X, dtype=np.float64)
     Z_mat = np.asarray(Z, dtype=np.float64)
 
-    def generate_y_star(y_h_null: np.ndarray, res_scaled: Optional[np.ndarray], res_std: Optional[float]) -> np.ndarray:
+    def generate_y_star(
+        y_h_null: np.ndarray,
+        res_scaled: Optional[np.ndarray], 
+        res_std: Optional[float],
+        rng_inst: np.random.Generator
+    ) -> np.ndarray:
         """Simulate synthetic y* values under the null hypothesis (H1)."""
         if boot_method == 'wild':
             if res_distribution == 'rademacher':
-                v = np.random.choice([-1.0, 1.0], size=N, replace=True)
+                v = rng_inst.choice([-1.0, 1.0], size=N, replace=True)
             elif res_distribution == 'mammen':
                 v_choices = [-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2]
                 v_probs = [(np.sqrt(5) + 1) / (2 * np.sqrt(5)), (np.sqrt(5) - 1) / (2 * np.sqrt(5))]
-                v = np.random.choice(v_choices, size=N, replace=True, p=v_probs)
+                v = rng_inst.choice(v_choices, size=N, replace=True, p=v_probs)
             else:
                 raise ValueError('Supported distributions for wild bootstrap: "rademacher" or "mammen".')
             return y_h_null + res_scaled * v
 
         elif boot_method in ['residuals', 'semiparametric']:
-            b_indices = np.random.choice(N, size=N, replace=True)
-            return y_h_null + res_scaled[b_indices]
+            b_inx = rng.choice(N, size=N, replace=True)
+            return y_h_null + res_scaled[b_idx]
 
         elif boot_method == 'parametric':
-            return y_h_null + np.random.normal(0, res_std, size=N)
+            return y_h_null + rng.normal(loc=0.0, scale=res_std, size=N)
 
         raise ValueError(f"Invalid boot_method: {boot_method}")
 
@@ -494,13 +507,13 @@ def jtest_scipy(
             for _ in range(B):
                 try:
                     if boot_method == 'pairs':
-                        idx = np.random.choice(N, size=N, replace=True)
+                        idx = rng.choice(N, size=N, replace=True)
                         x_null_b = x_null[idx] if x_null.ndim == 1 else x_null[idx, :]
                         x_alt_b = x_alt[idx] if x_alt.ndim == 1 else x_alt[idx, :]
                         y_b = y_f[idx]
                     else:
                         x_null_b, x_alt_b = x_null, x_alt
-                        y_b = generate_y_star(y_h_null, res_scaled, res_std)
+                        y_b = generate_y_star(y_h_null, res_scaled, res_std, rng)
 
                     x_null_b_cf = format_cf_input(x_null_b)
                     x_alt_b_cf = format_cf_input(x_alt_b)
@@ -578,7 +591,7 @@ def jtest_scipy(
             for _ in range(B):
                 try:
                     if boot_method == 'pairs':
-                        idx = np.random.choice(N, size=N, replace=True)
+                        idx = rng.choice(N, size=N, replace=True)
                         x_null_b = x_null[idx] if x_null.ndim == 1 else x_null[idx, :]
                         x_alt_b = x_alt[idx] if x_alt.ndim == 1 else x_alt[idx, :]
                         y_b = y_f[idx]
