@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Literal, Callable, Any, Dict, Tuple
+from typing import Union, Optional, Literal, Callable, Any, Dict, Tuple
 import numpy as np
 import scipy.stats as stats
 import statsmodels.api as sm
