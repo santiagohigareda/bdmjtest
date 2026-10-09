@@ -28,12 +28,7 @@ def jtest_np(
         X: np.ndarray,
         Z: np.ndarray,
         B: int = 999,
-        boot_method: Literal[
-            "residuals",
-            "semiparametric",
-            "wild",
-            "parametric",
-            "pairs"] = "residuals",
+        boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "residuals",
         **kwargs
 ) -> JtestResults:
 
@@ -201,8 +196,8 @@ def jtest_sm(
     **kwargs
 ) -> JtestResults:
     
-    return_residuals: bool = kwargs.get('returnmodelresiduals', False)
-    return_fitted: bool = kwargs.get('returnfittedvalues', False)
+    return_residuals: bool = kwargs.get('return_residuals', False)
+    return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
     boot_tails: str = kwargs.get('boot_tails', 'one')
@@ -341,8 +336,8 @@ def jtest_scipy(
     **kwargs: Any
 ) -> JtestResults:
 
-    return_residuals: bool = kwargs.get('returnmodelresiduals', False)
-    return_fitted: bool = kwargs.get('returnfittedvalues', False)
+    return_residuals: bool = kwargs.get('return_residuals', False)
+    return_fitted: bool = kwargs.get('return_fitted', False)
     jtest_solver: str = kwargs.get('jtest_solver', 'hybrid-ols')
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     boot_tails: str = kwargs.get('boot_tails', 'one')
