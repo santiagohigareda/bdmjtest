@@ -374,7 +374,7 @@ def jtest_scipy(
             return y_h_null + res_scaled * v
 
         elif boot_method in ['residuals', 'semiparametric']:
-            b_inx = rng.choice(N, size=N, replace=True)
+            b_idx = rng.choice(N, size=N, replace=True)
             return y_h_null + res_scaled[b_idx]
 
         elif boot_method == 'parametric':
