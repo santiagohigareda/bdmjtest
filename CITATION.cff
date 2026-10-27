@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: "bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python "
+message: "If you use this software, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: "Guerrero-Higareda"
+    given-names: "Santiago"
+    orcid: "https://orcid.org/0009-0001-9733-1337"
+    affiliation: "Tecnologico de Monterrey"
+    email: "a01636858@tec.mx"
+  
+contact:
+  - family-names: "Guerrero-Higareda"
+    given-names: "Santiago"
+    email: "s.g.higareda@proton.me"
+  
+version: "1.0.2"
+date-released: "2026-10-27"
+license: "MIT"
+repository-code: "https://github.com/santiagohigareda/bdmjtest"
+url: "https://pypi.org/project/bdmjtest/"
+keywords:
+  - statistics
+  - econometrics
+  - hypothesis-testing
+  - bootstrap
+  - python
+abstract: >-
+  bdmjtest is an open-source Python package that provides a 
+  high-performance Bootstrapped J-test implementation for 
+  comparing non-nested linear and non-linear models.
