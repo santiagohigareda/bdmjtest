@@ -43,7 +43,7 @@ print(f"H2 vs H1 - Bootstrapped p-value: {res_2.p_boot}")
 If you use `bdmjtest` in a published work, please cite as:
 APA 7
 ```
-Guerrero-Higareda, S. (2026). bdmjtest: A Python Package for Bootstrapped Davidson-MacKinnon J-test in Linear and Non-Linear Non-Nested Models (Version 1.0.0) [Computer Software]. https://github.com/santiagohigareda/bdmjtest
+Guerrero-Higareda, S. (2026). bdmjtest: A Python Package for Bootstrapped Davidson-MacKinnon J-test in Linear and Non-Linear Non-Nested Models (Version 1.0.1) [Computer Software]. https://github.com/santiagohigareda/bdmjtest
 ```
 BibTex
 ```
@@ -51,7 +51,7 @@ BibTex
   author = {Guerrero-Higareda, Santiago},
   title = {bdmjtest: A Python Package for Bootstrapped Davidson-MacKinnon J-test in Linear and Non-Linear Non-Nested Models},
   year = {2026},
-  version = {1.0.0},
+  version = {1.0.1},
   url = {https://github.com/santiagohigareda/bdmjtest}
 ```
 
