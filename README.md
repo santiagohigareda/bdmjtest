@@ -1,4 +1,4 @@
-# bdmjtest: Bootstrapped Davidson-MacKinnon J-test
+# bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python
 
 [![Development Status](https://img.shields.io/badge/Development%20Status-3%20--%20Alpha-orange.svg)](https://pypi.org/project/bdmjtest/)
 [![PyPI version](https://img.shields.io/pypi/v/bdmjtest?cacheSeconds=3600)](https://pypi.org/project/bdmjtest/)
