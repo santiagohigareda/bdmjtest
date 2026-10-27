@@ -16,7 +16,7 @@ authors = [
 maintainers = [
     {name = "Santiago Guerrero-Higareda", email = "s.g.higareda@proton.me"}
 ]
-keywords = ["statistics", "econometrics", "bootstrapping"]
+keywords = ["statistics", "econometrics", "bootstrapping", "hypothesis-testing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
