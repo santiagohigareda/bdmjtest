@@ -1,8 +1,8 @@
 # bdmjtest: Bootstrapped Davidson-MacKinnon J-test
 
 [![Development Status](https://img.shields.io/badge/Development%20Status-3%20--%20Alpha-orange.svg)](https://pypi.org/project/bdmj/)
-[![PyPI version](https://shields.io/pypi/v/bdmj)](https://pypi.org/project/bdmj/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT
+[![PyPI version](https://img.shields.io/pypi/v/bdmj)](https://pypi.org/project/bdmj/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 `bdmjtest` is an open-open source Python package that provides a high-performance Bootstrapped J-test implementation for comparing non-nested linear and non-linear models.
 
