@@ -17,7 +17,7 @@ class JtestResults:
     Attributes
     ----------
     t_asy : float
-        Aymptotic J-test t-statistic computed from original sample data.
+        Asymptotic J-test t-statistic computed from original sample data.
     p_asy : float
         Asymptotic p-value based on Student's t-distribution.
     p_boot : float
