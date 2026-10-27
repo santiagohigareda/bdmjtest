@@ -1,6 +1,6 @@
 # bdmjtest: Bootstrapped Davidson-MacKinnon J-test
 
-[![Development Status](https://img.shields.io/pypi/status/bdmjtest)](https://pypi.org/project/bdmjtest/)
+[![Development Status](https://img.shields.io/pypi/status/bdmjtest?cache=1)](https://pypi.org/project/bdmjtest/)
 [![PyPI version](https://img.shields.io/pypi/v/bdmjtest)](https://pypi.org/project/bdmjtest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
