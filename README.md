@@ -4,7 +4,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/bdmjtest?cacheSeconds=3600)](https://pypi.org/project/bdmjtest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`bdmjtest` is an open-open source Python package that provides a high-performance Bootstrapped J-test implementation for comparing non-nested linear and non-linear models.
+`bdmjtest` is an open-source Python package that provides a high-performance Bootstrapped J-test implementation for comparing non-nested linear and non-linear models.
 
 ## Features
 - **Multiple Bootstrap DGPs**: Support residuals (semiparametric), parametric, wild and pairs (nonparametric) bootstrap Data Generation Processes (DGPs) to handle different error structures (e.g. non-normal, skewed or heavy-tailed).
