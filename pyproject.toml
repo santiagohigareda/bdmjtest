@@ -50,4 +50,7 @@ dependencies = [
 source = "vcs"
 
 [tool.hatch.build.hooks.vcs]
-version-file = "bdmjtest/_version.py"
+version-file = "src/bdmjtest/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bdmjtest"]
