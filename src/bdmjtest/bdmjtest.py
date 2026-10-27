@@ -111,8 +111,6 @@ def jtest_np(
     res_aug = y_f - (A_aug @ coeffs_aug)
     ssr_aug = np.sum(res_aug ** 2)
     # J-statistic and asymptotic p-value
-    n_aug, p_aug = A_aug.shape
-    dof_aug = n_aug - p_aug
     dof_aug = N - A_aug.shape[1]
     mse_aug = ssr_aug / dof_aug
     cov_aug = mse_aug * np.linalg.pinv(A_aug.T @ A_aug)
