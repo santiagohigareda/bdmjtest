@@ -25,9 +25,9 @@ class JtestResults:
     s_its : float
         Total number of successfully executed bootstraps.
     residuals : np.ndarray, optional
-        Residuals from the null model (H0), returned if requested.
+        Residuals from the null model (H1), returned if requested.
     fitted : np.ndarray, optional
-        Fitted values from the null model (H0), returned if requested.
+        Fitted values from the null model (H1), returned if requested.
     """
     # Primary variables
     t_asy : float
