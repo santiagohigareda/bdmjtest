@@ -29,6 +29,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
@@ -54,3 +55,9 @@ version-file = "src/bdmjtest/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/bdmjtest"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["src"]
