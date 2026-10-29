@@ -14,8 +14,8 @@ contact:
     given-names: "Santiago"
     email: "s.g.higareda@proton.me"
   
-version: "1.0.2"
-date-released: "2026-10-27"
+version: "2.0.0"
+date-released: "2026-10-29"
 license: "MIT"
 repository-code: "https://github.com/santiagohigareda/bdmjtest"
 url: "https://pypi.org/project/bdmjtest/"
