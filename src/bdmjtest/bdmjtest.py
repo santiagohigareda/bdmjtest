@@ -137,7 +137,7 @@ def _calc_aug_reg(
         return float(coeffs[-1] / se)
 
     else:
-        raise ValueError(f'Unknown solver: {solver}. Options are "qr" and "lstsq"')
+        raise ValueError(f"Unknown solver: {solver}. Options are 'qr' and 'lstsq'.")
 
 def _setup_residual_scaling(
         res: np.ndarray,
@@ -164,7 +164,7 @@ def _setup_residual_scaling(
                 leverage = np.diag(H)
             return res_centered / np.sqrt(1.0 - leverage), None
         else:
-            raise ValueError('Supported residual scaling options are "simple" and "leverage".')
+            raise ValueError("Supported residual scaling options are 'simple' and 'leverage'.")
 
     elif boot_method == 'wild':
         if scaled_residuals == 'simple':
@@ -177,7 +177,7 @@ def _setup_residual_scaling(
                 leverage = np.diag(H)
             return res / np.sqrt(1.0 - leverage), None
         else:
-            raise ValueError('Supported residual scaling options are "simple" and "leverage".')
+            raise ValueError("Supported residual scaling options are 'simple' and 'leverage'.")
 
     elif boot_method == 'parametric':
         return None, float(np.sqrt(np.sum(res ** 2) / dof))
@@ -190,9 +190,9 @@ def jtest_np(
         X: np.ndarray,
         Z: np.ndarray,
         B: int = 999,
-        boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "residuals",
-        direction: Literal["pairwise", "one-way"] = "pairwise",
-        solver: Literal["qr", "lstsq"] = "qr",
+        boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
+        direction: Literal['pairwise', 'one-way'] = 'pairwise',
+        solver: Literal['qr', 'lstsq'] = 'qr',
         seed: Optional[Union[int, np.random.Generator]] = None,
         **kwargs
 ) -> JtestResults:
@@ -248,7 +248,7 @@ def jtest_np(
         raise ValueError(f"Invalid boot method: {boot_method}")
 
     if solver not in ('qr', 'lstsq'):
-        raise ValueError(f'Unknown solver: {solver}. Options are "qr" and "lstsq".')
+        raise ValueError(f"Unknown solver: {solver}. Options are 'qr' and 'lstsq'.")
 
     return_residuals: bool = kwargs.get('return_residuals', False)
     return_fitted: bool = kwargs.get('return_fitted', False)
@@ -332,7 +332,7 @@ def jtest_np(
             elif res_distribution == 'normal':
                 v = rng.normal(loc=0.0, scale=1.0, size=N)
             else:
-                raise ValueError('Supported distributions are "rademacher", "mammen", "webb", and "normal"')
+                raise ValueError("Supported distributions are 'rademacher', 'mammen', 'webb', and 'normal'")
             return y_null_fit + res_scaled * v
 
         elif boot_method in ['residuals', 'semiparametric']:
@@ -342,7 +342,7 @@ def jtest_np(
         elif boot_method == 'parametric':
             return y_null_fit + rng.normal(loc=0.0, scale=res_std, size=N)
 
-        raise ValueError(f'Invalid boot method: {boot_method}.')
+        raise ValueError(f"Invalid boot method: {boot_method}.")
 
     # 4. Bootstrap loop
     t_boot_X_list, t_boot_Z_list = [], []
@@ -431,7 +431,7 @@ def jtest_np(
         elif boot_tails == 'two':
             p_val_boot = float((1 + np.sum(np.abs(arr) >= np.abs(t_obs))) / (1 + s_its))
         else:
-            raise ValueError('boot_tails must be "one" or "two"')
+            raise ValueError("boot_tails must be 'one' or 'two'.")
         return p_val_boot, s_its
 
     p_boot_X, s_its_X = _compute_p_boot(t_boot_X_list, t_asy_X)
@@ -489,8 +489,8 @@ def jtest_sm(
     X: np.ndarray,
     Z: np.ndarray,
     B: int = 999,
-    boot_method: Literal["residuals", "semiparametric", "wild", "parametric", "pairs"] = "residuals",
-    direction: Literal["pairwise", "one-way"] = "pairwise",
+    boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
+    direction: Literal['pairwise', 'one-way'] = 'pairwise',
     solver: Literal['auto', 'qr', 'pinv'] = 'auto',
     seed: Optional[Union[int, np.random.Generator]] = None,
     **kwargs
@@ -600,7 +600,7 @@ def jtest_sm(
                 leverage = m.get_influence().hat_matrix_diag  # Hat matrix diagonal
                 return res_centered / np.sqrt(1.0 - leverage), None
             else:
-                raise ValueError('Supported residual scaling options: "simple" or "leverage".')
+                raise ValueError("Supported residual scaling options: 'simple' or 'leverage'.")
         elif boot_method == 'wild':
             if scaled_residuals == 'simple':
                 return res_y * np.sqrt(N / dof_h), None
@@ -608,7 +608,7 @@ def jtest_sm(
                 leverage = m.get_influence().hat_matrix_diag
                 return res_y / np.sqrt(1.0 - leverage), None
             else:
-                raise ValueError('Supported residual scaling options: "simple" or "leverage".')
+                raise ValueError("Supported residual scaling options: 'simple' or 'leverage'.")
         elif boot_method == 'parametric':
             return None, np.sqrt(m.ssr / dof_h)
         return None, None
@@ -637,7 +637,7 @@ def jtest_sm(
             elif res_distribution == 'normal':
                 v = rng.normal(loc=0.0, scale=1.0, size=N)
             else:
-                raise ValueError('Supported distributions are "rademacher", "mammen", "webb", and "normal"')
+                raise ValueError("Supported distributions are 'rademacher', 'mammen', 'webb', and 'normal'")
             return y_null_fit + res_scaled * v
 
         elif boot_method in ['residuals', 'semiparametric']:
@@ -647,7 +647,7 @@ def jtest_sm(
         elif boot_method == 'parametric':
             return y_null_fit + rng.normal(loc=0.0, scale=res_std, size=N)
 
-        raise ValueError(f'Invalid boot method: {boot_method}.')
+        raise ValueError(f"Invalid boot method: {boot_method}.")
 
 
     # 4. Bootstrap loop
@@ -719,7 +719,7 @@ def jtest_sm(
         elif boot_tails == 'two':
             p_val_boot = float((1 + np.sum(np.abs(arr) >= np.abs(t_obs))) / (1 + s_its))
         else:
-            raise ValueError('boot_tails must be "one" or "two"')
+            raise ValueError("boot_tails must be 'one' or 'two'.")
         return p_val_boot, s_its
 
     p_boot_X, s_its_X = _compute_p_boot(t_boot_X_list, t_asy_X)
@@ -854,7 +854,7 @@ def jtest_scipy(
     """
 
     if B <= 0:
-        raise ValueError("B must be a strictly positive integer")
+        raise ValueError('B must be a strictly positive integer')
     elif B < 399:
         min_pval = 1.0 / (B + 1)
         warnings.warn(
@@ -898,7 +898,7 @@ def jtest_scipy(
             elif res_distribution == 'normal':
                 v = rng.normal(loc=0.0, scale=1.0, size=N)
             else:
-                raise ValueError('Supported distributions are "rademacher", "mammen", "webb", and "normal"')
+                raise ValueError("Supported distributions are 'rademacher', 'mammen', 'webb', and 'normal'.")
             return y_h_null + res_scaled * v
 
         elif boot_method in ['residuals', 'semiparametric']:
@@ -908,7 +908,7 @@ def jtest_scipy(
         elif boot_method == 'parametric':
             return y_h_null + rng.normal(loc=0.0, scale=res_std, size=N)
 
-        raise ValueError(f"Invalid boot_method: {boot_method}")
+        raise ValueError(f'Invalid boot_method: {boot_method}')
 
     def _run_directional_test(
             x_null: np.ndarray,
@@ -1126,7 +1126,7 @@ def jtest_scipy(
         elif boot_tails == 'two':
             p_boot = float((1 + np.sum(np.abs(t_arr) >= np.abs(t_stat_obs))) / (1 + s_its))
         else:
-            raise ValueError('boot_tails option must be "one" or "two".')
+            raise ValueError("boot_tails option must be 'one' or 'two'.")
 
         return t_stat_obs, p_obs, p_boot, s_its, t_arr, res_null, y_h_null
 
