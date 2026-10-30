@@ -54,7 +54,7 @@ If you use `bdmjtest` in a published work, please cite as:
 
 APA 7
 ```
-Guerrero-Higareda, S. (2026). bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python (Version v2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23786072
+Guerrero-Higareda, S. (2026). bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python (Version v2.0.1) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23786072
 ```
 
 
