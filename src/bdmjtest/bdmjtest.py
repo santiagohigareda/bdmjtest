@@ -866,6 +866,8 @@ def jtest_scipy(
     if boot_method not in ['residuals', 'semiparametric', 'wild', 'parametric', 'pairs']:
         raise ValueError(f"Invalid boot method: {boot_method}")
 
+    jtest_solver = kwargs.get('jtest_solver', jtest_solver)
+
     # Fallback for inital parameter is passed though kwargs
     if p0_X is None:
         p0_X = kwargs.get('p0_X', None)
@@ -874,7 +876,6 @@ def jtest_scipy(
 
     return_residuals: bool = kwargs.get('return_residuals', False)
     return_fitted: bool = kwargs.get('return_fitted', False)
-    jtest_solver: str = kwargs.get('jtest_solver', 'hybrid-ols')
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     boot_tails: str = kwargs.get('boot_tails', 'one')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
