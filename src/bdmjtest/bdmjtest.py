@@ -1140,9 +1140,6 @@ def jtest_scipy(
 
         return t_stat_obs, p_obs, p_boot, s_its, t_arr, res_null, y_h_null
 
-    p0_X = kwargs.get('p0_X', None)
-    p0_Z = kwargs.get('p0_Z', None)
-
     # H1 vs H2
     t_asy_X, p_asy_X, p_boot_X, s_its_X, t_boot_X, res_X, fit_X = _run_directional_test(
         X_mat, Z_mat, func_X, func_Z, p0_X, p0_Z)
