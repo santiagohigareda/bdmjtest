@@ -54,18 +54,9 @@ If you use `bdmjtest` in a published work, please cite as:
 
 APA 7
 ```
-Guerrero-Higareda, S. (2026). bdmjtest: A Python Package for Bootstrapped Davidson-MacKinnon J-test in Linear and Non-Linear Non-Nested Models (Version 2.0.0) [Computer Software]. https://github.com/santiagohigareda/bdmjtest
+Guerrero-Higareda, S. (2026). bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python (Version v2.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23786072
 ```
 
-BibTex
-```
-@software{bdmjtest2026,
-  author = {Guerrero-Higareda, Santiago},
-  title = {bdmjtest: A Python Package for Bootstrapped Davidson-MacKinnon J-test in Linear and Non-Linear Non-Nested Models},
-  year = {2026},
-  version = {2.0.0},
-  url = {https://github.com/santiagohigareda/bdmjtest}
-```
 
 ## Support and contributing
 Contributions are welcome! Questions, bugs reports and feature requests go to [GitHub Issues](https://github.com/santiagohigareda/bdmjtest/issues). If you don´t have a GitHub account or have a particular inquiry, [email me](mailto:s.g.higareda@proton.me).
