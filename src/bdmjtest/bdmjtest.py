@@ -460,7 +460,7 @@ def jtest_np(
 def _fit_ols_sm(
         y: np.ndarray,
         X: np.ndarray,
-        solver: str = 'auto'
+        solver: str = 'pinv'
 ) -> sm.regression.linear_model.RegressionResultsWrapper:
     """
     Fit Statsmodels OLS with explicit solver controls ('qr', 'pinv') and rank-deficient  matrices fallback support.
@@ -491,7 +491,7 @@ def jtest_sm(
     B: int = 999,
     boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
     direction: Literal['pairwise', 'one-way'] = 'pairwise',
-    solver: Literal['auto', 'qr', 'pinv'] = 'auto',
+    solver: Literal['auto', 'qr', 'pinv'] = 'pinv',
     seed: Optional[Union[int, np.random.Generator]] = None,
     **kwargs
 ) -> JtestResults:
@@ -569,7 +569,7 @@ def jtest_sm(
 
     # Model H2
     A2 = np.concatenate([Z_mat, ones_col], axis=1)
-    m2 = _fit_ols_sm(y_f, A1, solver=solver)
+    m2 = _fit_ols_sm(y_f, A2, solver=solver)
     y2_h = m2.fittedvalues
     res_y2 = m2.resid
     dof_h2 = m2.df_resid
