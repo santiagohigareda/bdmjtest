@@ -753,9 +753,13 @@ def jtest_scipy(
         Z: np.ndarray,
         func_X: Callable,
         func_Z: Callable,
+        p0_X: Optional[Union[list, np.ndarray, Dict[str, Any]]] = None,
+        p0_Z: Optional[Union[list, np.ndarray, Dict[str, Any]]] = None,
         B: int = 999,
         boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = "pairs",
         direction: Literal['pairwise', 'one-way'] = 'pairwise',
+        jtest_solver: Literal['hybrid-ols', 'scipy', 'lmfit'] = 'hybrid-ols',
+        curvefitmethod: Optional[str] = None,
         seed: Optional[Union[int, np.random.Generator]] = None,
         **kwargs: Any
 ) -> JtestResults:
@@ -778,6 +782,12 @@ def jtest_scipy(
         - For 'lmfit': `f(x, param1, param2, ...)` expecting named keyword arguments.
     func_Z : callable
         Model function for H2 (same signature requirements as `func_X`).
+    p0_X : list, np.ndarray, or dict, optional
+        Initial parameter values for Model H1:
+        - `list`/`np.ndarray` for 'hybrid-ols' and 'scipy' (e.g., `[1.0, 0.5]`)
+        - `dict` for 'lmfit' (e.g., `{'alpha': 1.0, 'beta': 0.5}`)
+    p0_Z : list, np.ndarray, or dict, optional
+        Initial parameter values for Model H2 (same formatting rules as `p0_X`).
     B : int, default=999
         Number of bootstrap replications.
     boot_method : {'pairs', 'residuals' ('semiparametric'), 'wild', 'parametric'}, default='pairs'
@@ -792,7 +802,10 @@ def jtest_scipy(
         * 'scipy' : Pure Non-linear Least Squares (NLS) pipeline using
                     `scipy.optimize.curve_fit` for both baseline and augmented models.
         * 'lmfit' : Symbolic, parameter-based optimization pipeline using `lmfit.Model`.
-
+    curvefitmethod : str or None, default=None
+        Optimization method passed to `scipy.optimize.curve_fit` (e.g., 'lm', 'trf', 'dogbox').
+        If None, SciPy automatically selects 'lm' for unconstrained problems or 'trf' if bounds are present.
+        
     Other Parameters
     ----------------
     **kwargs : dict
@@ -809,17 +822,6 @@ def jtest_scipy(
             If True, populates `fitted` in the returned `JtestResults`.
         - return_t_boot (bool): default=False
             Return bootstrap t-statistics distributions.
-
-        *Backend-Specific Controls:*
-        - p0_X : list, np.ndarray, or dict, optional
-            Initial parameter values for Model H1:
-            - `list`/`np.ndarray` for 'hybrid-ols' and 'scipy' (e.g., `[1.0, 0.5]`)
-            - `dict` for 'lmfit' (e.g., `{'alpha': 1.0, 'beta': 0.5}`)
-        - p0_Z : list, np.ndarray, or dict, optional
-            Initial parameter values for Model H2 (same formatting rules as `p0_X`).
-        - curvefitmethod : str, default='lm'
-            [*'hybrid-ols' and 'scipy' backends only*] Optimization method passed to
-            `scipy.optimize.curve_fit` (e.g., 'lm', 'trf', 'dogbox').
 
     Returns
     -------
@@ -864,6 +866,12 @@ def jtest_scipy(
     if boot_method not in ['residuals', 'semiparametric', 'wild', 'parametric', 'pairs']:
         raise ValueError(f"Invalid boot method: {boot_method}")
 
+    # Fallback for inital parameter is passed though kwargs
+    if p0_X is None:
+        p0_X = kwargs.get('p0_X', None)
+    if p0_Z is None:
+        p0_Z = kwargs.get('p0_Z', None)
+
     return_residuals: bool = kwargs.get('return_residuals', False)
     return_fitted: bool = kwargs.get('return_fitted', False)
     jtest_solver: str = kwargs.get('jtest_solver', 'hybrid-ols')
@@ -871,7 +879,11 @@ def jtest_scipy(
     boot_tails: str = kwargs.get('boot_tails', 'one')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
+     # Determine optimization method for scipy.curve_fit
+    cf_method = curvefitmethod if curvefitmethod is not None else kwargs.get('curvefitmethod', kwargs.get('method', None))
+
     rng = np.random.default_rng(seed)
+
     # Data prepocessing
     y_f = np.asarray(y, dtype=np.float64).ravel()
     N = len(y_f)
@@ -921,13 +933,12 @@ def jtest_scipy(
 
         # Hybrid-OLS: Base models fitted via SciPy with statmodels.OLS augmented regression
         if jtest_solver == 'hybrid-ols':
-            curvefitmethod = kwargs.get('curvefitmethod', 'lm')
-            popt_null, _ = curve_fit(f_null, x_null, y_f, p0=p0_null, method=curvefitmethod)
+            popt_null, _ = curve_fit(f_null, x_null, y_f, p0=p0_null, method=cf_method)
             y_h_null = f_null(x_null, *popt_null)
             res_null = y_f - y_h_null
             dof = N - len(popt_null)
 
-            popt_alt, _ = curve_fit(f_alt, x_alt, y_f, p0=p0_alt, method=curvefitmethod)
+            popt_alt, _ = curve_fit(f_alt, x_alt, y_f, p0=p0_alt, method=cf_method)
             y_h_alt = np.asarray(f_alt(x_alt, *popt_alt)).ravel()
 
             X_aug = sm.add_constant(np.column_stack([x_null, y_h_alt]))
@@ -957,7 +968,7 @@ def jtest_scipy(
                         x_null_b, x_alt_b = x_null, x_alt
                         y_b = generate_y_star(y_h_null, res_scaled, res_std)
 
-                    popt_alt_b, _ = curve_fit(f_alt, x_alt_b, y_b, p0=p0_alt, method=curvefitmethod)
+                    popt_alt_b, _ = curve_fit(f_alt, x_alt_b, y_b, p0=p0_alt, method=cf_method)
                     y_h_alt_b = np.asarray(f_alt(x_alt_b, *popt_alt_b)).ravel()
 
                     X_aug_b = sm.add_constant(np.column_stack((x_null_b, y_h_alt_b)))
@@ -970,13 +981,12 @@ def jtest_scipy(
 
         # SciPy: Uses SciPy for both base models and augmented regression
         elif jtest_solver == 'scipy':
-            curvefitmethod = kwargs.get('curvefitmethod', 'lm')
-            popt_null, _ = curve_fit(f_null, x_null, y_f, p0=p0_null, method=curvefitmethod)
+            popt_null, _ = curve_fit(f_null, x_null, y_f, p0=p0_null, method=cf_method)
             y_h_null = f_null(x_null, *popt_null)
             res_null = y_f - y_h_null
             dof = N - len(popt_null)
 
-            popt_alt, _ = curve_fit(f_alt, x_alt, y_f, p0=p0_alt, method=curvefitmethod)
+            popt_alt, _ = curve_fit(f_alt, x_alt, y_f, p0=p0_alt, method=cf_method)
             y_h_alt = np.asarray(f_alt(x_alt, *popt_alt)).ravel()
 
             def make_augmented_model(
@@ -986,7 +996,7 @@ def jtest_scipy(
                 return lambda x, *terms: base_model_func(x, *terms[:-1]) + terms[-1] * competitor_fitted
 
             model_aug = make_augmented_model(f_null, y_h_alt)
-            popt_aug, pcov_aug = curve_fit(model_aug, x_null, y_f, p0=[*popt_null, 0.0], method=curvefitmethod)
+            popt_aug, pcov_aug = curve_fit(model_aug, x_null, y_f, p0=[*popt_null, 0.0], method=cf_method)
 
             try:
                 se_aug = np.sqrt(np.abs(pcov_aug[-1, -1]))
@@ -1017,12 +1027,12 @@ def jtest_scipy(
                         x_null_b, x_alt_b = x_null, x_alt
                         y_b = generate_y_star(y_h_null, res_scaled, res_std)
 
-                    popt_alt_b, _ = curve_fit(f_alt, x_alt_b, y_b, p0=p0_alt, method=curvefitmethod)
+                    popt_alt_b, _ = curve_fit(f_alt, x_alt_b, y_b, p0=p0_alt, method=cf_method)
                     y_h_alt_b = np.asarray(f_alt(x_alt_b, *popt_alt_b)).ravel()
 
                     model_aug_b = make_augmented_model(f_null, y_h_alt_b)
                     popt_aug_b, pcov_aug_b = curve_fit(model_aug_b, x_null_b, y_b, p0=[*popt_null, 0.0],
-                                                       method=curvefitmethod)
+                                                       method=cf_method)
 
                     try:
                         se_b = np.sqrt(np.abs(pcov_aug_b[-1, -1]))
