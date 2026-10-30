@@ -475,7 +475,7 @@ def _fit_ols_sm(
         if np.isnan(res.params).any() or np.isnan(res.bse).any():
             raise np.linalg.LinAlgError("Rank deficient or ill-conditioned matrix encountered.")
         return res
-    except (np.linalg.LinAlgError, sla.LinAlgError):
+    except (np.linalg.LinAlgError, ValueError):
         warnings.warn(
             "Design matrix is rank-deficient or singular. Falling back to 'pinv' pseudoinverse solver.",
             UserWarning,
