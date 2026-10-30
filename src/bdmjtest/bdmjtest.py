@@ -100,7 +100,7 @@ def _calc_aug_reg(
         solver: str = 'qr'
 ) -> float:
     """
-    Helper function to fit the augmented regression model and return the t-statistic.
+    jtest_np helper function to fit the augmented regression model and return the t-statistic.
     """
     A_aug = np.column_stack((X_mat, y_h_alt))
     N, K = A_aug.shape
@@ -150,7 +150,7 @@ def _setup_residual_scaling(
         solver: str
 ) -> Tuple[Optional[np.ndarray], Optional[float]]:
     """
-    Helper function to perform bootstrap scaling
+    jtest_np helper function to perform bootstrap scaling
     """
     if boot_method in ['residuals', 'semiparametric']:
         res_centered = res - np.mean(res)
