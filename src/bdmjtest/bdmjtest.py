@@ -254,7 +254,7 @@ def jtest_np(
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
-    boot_tails: str = kwargs.get('boot_tails', 'one')
+    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
     rng = np.random.default_rng(seed)
@@ -544,7 +544,7 @@ def jtest_sm(
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
-    boot_tails: str = kwargs.get('boot_tails', 'one')
+    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
     rng = np.random.default_rng(seed)
@@ -877,7 +877,7 @@ def jtest_scipy(
     return_residuals: bool = kwargs.get('return_residuals', False)
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
-    boot_tails: str = kwargs.get('boot_tails', 'one')
+    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
      # Determine optimization method for scipy.curve_fit
@@ -1041,7 +1041,7 @@ def jtest_scipy(
                         se_b = np.nan
 
                     if not np.isnan(se_b) and se_b > 0:
-                        t_b = float(popt_aug_b[-1] / np.sqrt(pcov_aug_b[-1, -1]))
+                        t_b = float(popt_aug_b[-1] / se_b)
                         t_stat_boot.append(t_b - t_stat_obs if boot_method == 'pairs' else t_b)
                 except (RuntimeError, ValueError):
                     continue
