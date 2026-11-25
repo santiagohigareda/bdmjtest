@@ -1114,7 +1114,7 @@ def jtest_scipy(
             lam_se = res_aug.params['lam'].stderr
 
             t_stat_obs = float(res_aug.params['lam'].value / lam_se if lam_se else np.nan)
-            p_obs = _asymptotic_pvalue(t_stats_obs, res_aug.nfree, tails)
+            p_obs = _asymptotic_pvalue(t_stat_obs, res_aug.nfree, tails)
 
             res_scaled, res_std = None, None
             if boot_method in ['residuals', 'semiparametric']:
