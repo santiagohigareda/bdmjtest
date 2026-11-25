@@ -7,16 +7,28 @@
 [![CI](https://github.com/santiagohigareda/bdmjtest/actions/workflows/ci.yml/badge.svg)](https://github.com/santiagohigareda/bdmjtest/actions/workflows/ci.yml)
 
 `bdmjtest` is an open-source Python package that provides a high-performance Bootstrapped J-test implementation for comparing non-nested linear and non-linear models.
+## What's New in v3.0.0
+Standardized p-value evaluation across all backends.
 
-## What´s New in v2.0.0
-- **Bidirectional by Default:** The test runs J-tests pairwise (`direction='pairwise'`), H<sub>1</sub> vs H<sub>2</sub>, and H<sub>2</sub> vs H<sub>1</sub>.
-- **Attribute Renames:** If you are upgrading from from v1.x.x, you must update your result attribute calls.
-- **Summary Table:** A new `results.summary()` method provides cleanly formatted console output.
-- **Enhanced Numerical Stability and Fallbacks:**
-  * NumPy Solvers: `jtest_np` now defaults to Householder QR decomposition (`solver='qr'`) for superior numerical stability, retaining `lstsq` as fallback.
-  * Statsmodels OLS: `jtest_sm` introduces more robust `LinAlgError` catching. Singular or ill-conditioned design matrices now safely fall back to pseudo-inverse (`solve_method='pinv'`) solution.
-  * Covariance Fallbacks: Improved statistical fallbacks for parameter covariance (`pcov`) calculations in SciPy (`jtest_scipy`).
-    
+### Breaking Changes
+- Symmetric two-tailed test is now the deault (`tails='two'`)
+- Replaced `kwargs` argument `boot_tails` with explicit `tails` parameter across `jtest_np`, `jtest_sm` and `jtest_scipy`.
+- Unified asymptotic p-value tail handling across all backends.
+
+### New Features and Improvements
+- Added support for equal-tail two-sided p-value (`tails='equal'`
+- Upfront `tails` input validation.
+
+### Migration Guide (`v2.0.3` -> `v3.0.0`)
+```
+# v2.0.3
+res = jtest_np(y, X, Z, boot_tails='two')
+res_one = jtest_np(y, X, Z) # previously defaulted to one-tailed
+
+# v.3.0.0
+res = jtest_np(y, X, Z) # now defaults to tails='two'
+```
+      
 ## Features
 - **Multiple Bootstrap DGPs:** Support residuals (semiparametric), parametric, wild and pairs (nonparametric) bootstrap Data Generation Processes (DGPs) to handle different error structures (e.g. non-normal, skewed or heavy-tailed).
 - **Three Backend Engines:** Choose between lightweight NumPy (`jtest_np`), Statsmodels (`jtest_sm`), or SciPy (`jtest_scipy`), based on the characteristics and requirements of the models and data being tested.
@@ -54,7 +66,7 @@ If you use `bdmjtest` in a published work, please cite as:
 
 APA 7
 ```
-Guerrero-Higareda, S. (2026). bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python (Version v2.0.3) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23786072
+Guerrero-Higareda, S. (2026). bdmjtest: Bootstrapped Davidson-MacKinnon J-test in Python (Version v3.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.23786072
 ```
 
 
