@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.1.0] - 2026-11-25
+
+### Added
+- **Davidson–MacKinnon P-test (Gauss–Newton Regression) in `jtest_scipy`:** Implemented linearized GNR estimation for `jtest_solver='hybrid-ols'`, regressing via `statsmodels.OLS` using adaptive central finite-difference Jacobian (`_compute_jacobian`, `eps=1e-6`).
+
+### Changed
+- **Exact compound weighting in nonlinear solvers:** Updated `jtest_scipy` under `jtest_solver='scipy'` and `jtest_solver='lmfit'` to evaluate `(1 - λ) * f_null(x, β) + λ * g_hat` across all functional forms.
+- **Re-centered `pairs` bootstrap in `hybrid-ols`:** Re-estimates the null model `f_hat*` and its Jacobian `F_hat*` on every resampled draw during `boot_method='pairs'`.
+- **Docstring formatting:** Standardized reST / NumPy-style parameter headers, bullet spacing, inline literals, and raw-string math blocks across `jtest_np`, `jtest_sm` and `jtest_scipy`.
+
+### Fixed
+- Error fixes
+
 ## [3.0.0] - 2026-11-25
 
 ### Added
