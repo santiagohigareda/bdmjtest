@@ -467,10 +467,10 @@ def jtest_np(
                     pass
 
     # 5. Bootstrap P-value
-    p_boot_X, s_its_X = _bootstrap_pvalue(t_boot_X_list, t_asy_X)
+    p_boot_X, s_its_X = _bootstrap_pvalue(t_asy_X, t_boot_X_list, tails)
     p_boot_Z, s_its_Z = np.nan, 0
     if direction == 'pairwise':
-        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_boot_Z_list, t_asy_Z)
+        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_asy_Z, t_boot_Z_list, tails)
 
     # 6. Outputs
     return JtestResults(
@@ -747,10 +747,10 @@ def jtest_sm(
                     pass
 
     # 5. Bootstrap P-Value
-    p_boot_X, s_its_X = _bootstrap_pvalue(t_boot_X_list, t_asy_X, tails)
+    p_boot_X, s_its_X = _bootstrap_pvalue(t_asy_X, t_boot_X_list, tails)
     p_boot_Z, s_its_Z = np.nan, 0
     if direction == 'pairwise':
-        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_boot_Z_list, t_asy_Z, tails)
+        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_asy_Z, t_boot_Z_list, tails)
 
     # 6. Outputs
     return JtestResults(
