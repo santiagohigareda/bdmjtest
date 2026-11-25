@@ -138,6 +138,40 @@ def test_optional_returns_matrix(synthetic_data, flags):
     if ret_fit: assert res.fitted_X is not None
     if ret_t: assert res.t_boot_X is not None
 
+def test_jtest_scipy_gnr_and_nls_parity():
+    rng = np.random.default_rng(123)
+    x = np.linspace(0.5, 3.0, 120)
+    # True DGP: exponential curve
+    y = 2.0 + 1.5 * np.exp(0.7 * x) + rng.normal(0, 0.5, size=x.size)
+
+    def exp_model(x_in, b0, b1, b2):
+        return b0 + b1 * np.exp(b2 * x_in)
+
+    def poly_model(x_in, g0, g1, g2):
+        return g0 + g1 * x_in + g2 * (x_in ** 2)
+
+    with pytest.warns(UserWarning, match="yields a minimum p-value"):
+        res_gnr = jtest_scipy(
+            y=y, X=x, Z=x,
+            func_X=exp_model, func_Z=poly_model,
+            B=19, boot_method="wild", jtest_solver="hybrid-ols",
+            p0_X=[1.0, 1.0, 0.5], p0_Z=[1.0, 1.0, 1.0],
+            seed=42,
+        )
+        res_nls = jtest_scipy(
+            y=y, X=x, Z=x,
+            func_X=exp_model, func_Z=poly_model,
+            B=19, boot_method="wild", jtest_solver="scipy",
+            p0_X=[1.0, 1.0, 0.5], p0_Z=[1.0, 1.0, 1.0],
+            seed=42,
+        )
+
+    # Under true H1 (exp_model), both GNR and NLS should fail to reject H1
+    assert res_gnr.p_asy_X > 0.05
+    assert res_nls.p_asy_X > 0.05
+    # Asymptotic t-stats from GNR (P-test) and NLS (J-test) should agree closely
+    assert np.isclose(res_gnr.t_asy_X, res_nls.t_asy_X, atol=0.15)
+
 # 5. Tails Parameter Tests
 @pytest.mark.parametrize("tails", TAILS)
 def test_tails_all_backends(synthetic_data, tails):
