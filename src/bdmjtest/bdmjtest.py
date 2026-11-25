@@ -308,6 +308,8 @@ def jtest_np(
 
     rng = np.random.default_rng(seed)
 
+    tails = _validate_tails(tails)
+
     # Data preprocessing
     y_f = np.asarray(y, dtype=float).ravel()
     N = len(y_f)
@@ -589,6 +591,8 @@ def jtest_sm(
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
     rng = np.random.default_rng(seed)
+
+    tails = _validate_tails(tails)
 
     # Data Preprocessing
     y_f = np.asarray(y, dtype=float).ravel()
@@ -914,6 +918,8 @@ def jtest_scipy(
     cf_method = curvefitmethod if curvefitmethod is not None else kwargs.get('curvefitmethod', kwargs.get('method', None))
 
     rng = np.random.default_rng(seed)
+
+    tails = _validate_tails(tails)
 
     # Data prepocessing
     y_f = np.asarray(y, dtype=np.float64).ravel()
