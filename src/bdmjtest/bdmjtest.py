@@ -133,7 +133,7 @@ def _bootstrap_pvalue(
         right = (1 + np.sum(arr >= t_obs)) / (1 + s_its)
         p_val = float(min(1.0, 2.0 * min(left, right)))
     else:
-        p_val = float((1 + np.sum(arr >= t_obs)) / (1 + s_its)
+        p_val = float((1 + np.sum(arr >= t_obs)) / (1 + s_its))
                       
     return p_val, s_its
 
