@@ -92,6 +92,51 @@ class JtestResults:
             )
         out += "================================================"
         return out
+        
+TailsOption = Literal['two', 'equal', 'one']
+_VALID_TAILS = ('two', 'equal', 'one')
+
+def _validate_tails(tails:str) -> TailsOption:
+    """Validate tail specification"""
+    if tails not in _VALID_TAILS:
+        raise ValueError(f"Tails must be on of {_VALID_TAILS}, got {tails!r}.")
+    retrun tails
+
+def _asymptotic_pvalue(
+    t_asy: float,
+    dof: float,
+    tails: TailsOption = 'two'
+) -> float:
+    """Compute asymptotic p_value from a t-statistic"""
+    if np.isnan(t_asy) or np.isnan(dof) or dof <= 0:
+        return np.nan
+    if tails in ('two', 'equal'):
+        return float(stats.t.sf(np.abs(t_asy), dof) * 2.0)
+    return float(stats.t.sf(t_asy, dof))
+
+def _bootstrap_pvalue(
+    t_obs: float,
+    t_boot: Union[list, np.ndarray],
+    tails: TailsOption = 'two'
+) -> Tuple[float, int]:
+    """Compute bootstrap p-value and valid iteration count"""
+    arr = np.asarray(t_boot, dtype=float)
+    arr = arr[~np.isnan(arr)]
+    s_its = int(arr.size)
+    if s_its == 0 or np.isnan(t_obs):
+        return np.nan, 0
+
+    if tails == 'two':
+        p_val = float((1 + np.sum(np.abs(arr) >= np.abs(t_obs))) / (1 + s_its))
+    elif tails == 'equal':
+        left = (1 + np.sum(arr <= t_obs)) / (1 + s_its)
+        right = (1 + np.sum(arr >= t_obs)) / (1 + s_its)
+        p_val = float(min(1.0, 2.0 * min(left, right)))
+    else:
+        p_val = float((1 + np.sum(arr >= t_obs)) / (1 + s_its)
+                      
+    return p_val, s_its
+
 
 def _calc_aug_reg(
         X_mat: np.ndarray,
@@ -192,6 +237,7 @@ def jtest_np(
         B: int = 999,
         boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
         direction: Literal['pairwise', 'one-way'] = 'pairwise',
+        tails: TailsOption = 'two',
         solver: Literal['qr', 'lstsq'] = 'qr',
         seed: Optional[Union[int, np.random.Generator]] = None,
         **kwargs
@@ -215,10 +261,15 @@ def jtest_np(
     direction : {'pairwise', 'one-way'}, default='pairwise'
         If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
         If 'one-way', evaluates only H1 vs H2.
+    tails: {'two', 'equal', 'one'}, default='two'
+        Tail specification for asymptotic and bootstrap p-values:
+        - 'two' : Symmetric two-tailed p-value.
+        - 'equal' : Equal-tail two-sided p-value.
+        - 'one' : Upper one-tailed p-value.
     solver: {'qr', 'lstsq'}, default='qr'
         Numerical solver engine:
-        - 'qr' : Householder QR decomposition for full-rank matrices
-        - 'lstsq' : Singular Value Decomposition (SVD) based least squares for rank-deficient matrices
+        - 'qr' : Householder QR decomposition for full-rank matrices.
+        - 'lstsq' : Singular Value Decomposition (SVD) based least squares for rank-deficient matrices.
     seed : int, default=None
         Random seed for reproducible bootstrap sampling.
     **kwargs : dict
@@ -227,7 +278,6 @@ def jtest_np(
         - return_fitted (bool): Return H1 fitted values (default: False).
         - res_distribution (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
         - scaled_residuals (str): Residual transformation ('simple' or 'leverage').
-        - boot_tails (str): Tail definition for bootstrap p-value ('one' or 'two').
         - return_t_boot (bool): Return bootstrap t-statistics distributions (default: False).
 
     Returns
@@ -254,7 +304,6 @@ def jtest_np(
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
-    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
     rng = np.random.default_rng(seed)
@@ -297,13 +346,13 @@ def jtest_np(
     # Augmented model: H1 vs H2
     t_asy_X = _calc_aug_reg(A1, y_f, y2_h, solver=solver)
     dof_aug_X = N - A1.shape[1] - 1
-    p_asy_X = float(stats.t.sf(np.abs(t_asy_X), dof_aug_X) * 2) if not np.isnan(t_asy_X) else np.nan
+    p_asy_X = _asymptotic_pvalue(t_asy_X, dof_aug_X, tails)
     # Augmented model: H2 vs H1
     t_asy_Z, p_asy_Z = np.nan, np.nan
     if direction == 'pairwise':
         t_asy_Z = _calc_aug_reg(A2, y_f, y1_h, solver=solver)
         dof_aug_Z = N - A2.shape[1] - 1
-        p_asy_Z = float(stats.t.sf(np.abs(t_asy_Z), dof_aug_Z) * 2) if not np.isnan(t_asy_Z) else np.nan
+        p_asy_Z = _asymptotic_pvalue(t_asy_Z, dof_aug_Z, tails)
 
     # 3. Residual scaling and bootstrap setup
     res_scaled_X, res_std_X = _setup_residual_scaling(res_y1, N, dof_h1, Q1, A1, boot_method, scaled_residuals,
@@ -418,26 +467,10 @@ def jtest_np(
                     pass
 
     # 5. Bootstrap P-value
-    def _compute_p_boot(
-            t_boot_list: list,
-            t_obs: float
-    ) -> Tuple[float, int]:
-        arr = np.array(t_boot_list)
-        s_its = len(arr)
-        if s_its == 0 or np.isnan(t_obs):
-            return np.nan, 0
-        if boot_tails == 'one':
-            p_val_boot = float((1 + np.sum(arr >= t_obs)) / (1 + s_its))
-        elif boot_tails == 'two':
-            p_val_boot = float((1 + np.sum(np.abs(arr) >= np.abs(t_obs))) / (1 + s_its))
-        else:
-            raise ValueError("boot_tails must be 'one' or 'two'.")
-        return p_val_boot, s_its
-
-    p_boot_X, s_its_X = _compute_p_boot(t_boot_X_list, t_asy_X)
+    p_boot_X, s_its_X = _bootstrap_pvalue(t_boot_X_list, t_asy_X)
     p_boot_Z, s_its_Z = np.nan, 0
     if direction == 'pairwise':
-        p_boot_Z, s_its_Z = _compute_p_boot(t_boot_Z_list, t_asy_Z)
+        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_boot_Z_list, t_asy_Z)
 
     # 6. Outputs
     return JtestResults(
@@ -463,7 +496,7 @@ def _fit_ols_sm(
         solver: str = 'pinv'
 ) -> sm.regression.linear_model.RegressionResultsWrapper:
     """
-    Fit Statsmodels OLS with explicit solver controls ('qr', 'pinv') and rank-deficient  matrices fallback support.
+    Fit Statsmodels OLS with explicit solver controls ('qr', 'pinv') and rank-deficient matrices fallback support.
     """
     if solver == 'pinv':
         return sm.OLS(y, X).fit(solve_method='pinv')
@@ -491,6 +524,7 @@ def jtest_sm(
     B: int = 999,
     boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
     direction: Literal['pairwise', 'one-way'] = 'pairwise',
+    tails: TailsOption = 'two',
     solver: Literal['auto', 'qr', 'pinv'] = 'pinv',
     seed: Optional[Union[int, np.random.Generator]] = None,
     **kwargs
@@ -514,13 +548,21 @@ def jtest_sm(
     direction : {'pairwise', 'one-way'}, default='pairwise'
         If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
         If 'one-way', evaluates only H1 vs H2.
+    tails: {'two', 'equal', 'one'}, default='two'
+        Tail specification for asymptotic and bootstrap p-values:
+        - 'two' : Symmetric two-tailed p-value
+        - 'equal' : Equal-tail two-sided p-value
+        - 'one' : Upper one-tailed p-value
+    solver: {'auto', 'qr', 'pinv'}, default=pinv
+        Solver passed to statsmodels.OLS.
+    seed : int, default=None
+        Random seed for reproducible bootstrap sampling.
     **kwargs : dict
         Optional controls:
         - return_residuals (bool): Return H1 residuals (default: False).
         - return_fitted (bool): Return H1 fitted values (default: False).
         - res_distribution (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
         - scaled_residuals (str): Residual scaling method ('simple' or 'leverage').
-        - boot_tails (str): Tail definition for bootstrap p-value ('one' or 'two').
         - return_t_boot (bool): Return bootstrap t-statistics distributions (default: False).
 
     Returns
@@ -544,7 +586,6 @@ def jtest_sm(
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     scaled_residuals: str = kwargs.get('scaled_residuals', 'simple')
-    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
     rng = np.random.default_rng(seed)
@@ -579,7 +620,7 @@ def jtest_sm(
     A_aug_X = np.concatenate([A1, np.asarray(y2_h).reshape(-1, 1)], axis=1)
     m_aug_X = _fit_ols_sm(y_f, A_aug_X, solver=solver)
     t_asy_X = float(m_aug_X.tvalues[-1])
-    p_asy_X = float(m_aug_X.pvalues[-1])
+    p_asy_X = _asymptotic_pvalue(t_asy_X, float(m_aug_X.df_resid), tails)
 
     # H2 vs H1
     t_asy_Z, p_asy_Z = np.nan, np.nan
@@ -587,7 +628,7 @@ def jtest_sm(
         A_aug_Z = np.concatenate([A2, np.asarray(y1_h).reshape(-1, 1)], axis=1)
         m_aug_Z = _fit_ols_sm(y_f, A_aug_Z, solver=solver)
         t_asy_Z = float(m_aug_Z.tvalues[-1])
-        p_asy_Z = float(m_aug_Z.pvalues[-1])
+        p_asy_Z = _asymptotic_pvalue(t_asy_Z, float(m_aug_Z.df_resid), tails)
 
 
     # 3. Residual scaling and bootstrap setup
@@ -706,26 +747,10 @@ def jtest_sm(
                     pass
 
     # 5. Bootstrap P-Value
-    def _compute_p_boot(
-            t_boot_list: list,
-            t_obs: float
-    ) -> Tuple[float, int]:
-        arr = np.array(t_boot_list)
-        s_its = len(arr)
-        if s_its == 0 or np.isnan(t_obs):
-            return np.nan, 0
-        if boot_tails == 'one':
-            p_val_boot = float((1 + np.sum(arr >= t_obs)) / (1 + s_its))
-        elif boot_tails == 'two':
-            p_val_boot = float((1 + np.sum(np.abs(arr) >= np.abs(t_obs))) / (1 + s_its))
-        else:
-            raise ValueError("boot_tails must be 'one' or 'two'.")
-        return p_val_boot, s_its
-
-    p_boot_X, s_its_X = _compute_p_boot(t_boot_X_list, t_asy_X)
+    p_boot_X, s_its_X = _bootstrap_pvalue(t_boot_X_list, t_asy_X, tails)
     p_boot_Z, s_its_Z = np.nan, 0
     if direction == 'pairwise':
-        p_boot_Z, s_its_Z = _compute_p_boot(t_boot_Z_list, t_asy_Z)
+        p_boot_Z, s_its_Z = _bootstrap_pvalue(t_boot_Z_list, t_asy_Z, tails)
 
     # 6. Outputs
     return JtestResults(
@@ -758,6 +783,7 @@ def jtest_scipy(
         B: int = 999,
         boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = "pairs",
         direction: Literal['pairwise', 'one-way'] = 'pairwise',
+        tails: TailsOption = 'two',
         jtest_solver: Literal['hybrid-ols', 'scipy', 'lmfit'] = 'hybrid-ols',
         curvefitmethod: Optional[str] = None,
         seed: Optional[Union[int, np.random.Generator]] = None,
@@ -795,6 +821,11 @@ def jtest_scipy(
     direction : {'pairwise', 'one-way'}, default='pairwise'
         If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
         If 'one-way', evaluates only H1 vs H2.
+    tails: {'two', 'equal', 'one'}, default='two'
+        Tail specification for asymptotic and bootstrap p-values:
+        - 'two' : Symmetric two-tailed p-value.
+        - 'equal' : Equal-tail two-sided p-value.
+        - 'one' : Upper one-tailed p-value.
     jtest_solver : {'hybrid-ols', 'scipy', 'lmfit'}, default='hybrid-ols'
         Computational engine used to estimate the baseline models and test parameter:
         * 'hybrid-ols'   : Hybrid approach. Baseline fits via `scipy.optimize.curve_fit`;
@@ -805,6 +836,8 @@ def jtest_scipy(
     curvefitmethod : str or None, default=None
         Optimization method passed to `scipy.optimize.curve_fit` (e.g., 'lm', 'trf', 'dogbox').
         If None, SciPy automatically selects 'lm' for unconstrained problems or 'trf' if bounds are present.
+    seed : int, default=None
+        Random seed for reproducible bootstrap sampling.
         
     Other Parameters
     ----------------
@@ -814,8 +847,6 @@ def jtest_scipy(
         *Global / Bootstrap Controls:*
         - res_distribution : {'rademacher', 'mammen', 'webb', 'normal'}, default='rademacher'
             Auxiliary distribution for wild bootstrap resampling.
-        - boot_tails : {'one', 'two'}, default='one'
-            Tail definition for calculating the empirical bootstrap p-value.
         - return_residuals : bool, default=False
             If True, populates `residuals` in the returned `JtestResults`.
         - return_fitted : bool, default=False
@@ -877,7 +908,6 @@ def jtest_scipy(
     return_residuals: bool = kwargs.get('return_residuals', False)
     return_fitted: bool = kwargs.get('return_fitted', False)
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
-    boot_tails: str = kwargs.get('boot_tails', 'two')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
      # Determine optimization method for scipy.curve_fit
@@ -945,7 +975,7 @@ def jtest_scipy(
             X_aug = sm.add_constant(np.column_stack([x_null, y_h_alt]))
             j_model = sm.OLS(y_f, X_aug).fit()
             t_stat_obs = float(j_model.tvalues[-1])
-            p_obs = float(j_model.pvalues[-1])
+            p_obs = _asymptotic_pvalue(t_stat_obs, float(j_model.df_resid), tails)
 
             res_scaled, res_std = None, None
             if boot_method in ['residuals', 'semiparametric']:
@@ -1005,7 +1035,7 @@ def jtest_scipy(
                 se_aug = np.nan
 
             t_stat_obs = float(popt_aug[-1] / se_aug) if not np.isnan(se_aug) and se_aug > 0 else np.nan
-            p_obs = float(stats.t.sf(np.abs(t_stat_obs), df=dof - 1) * 2) if not np.isnan(t_stat_obs) else np.nan
+            p_obs = _asymptotic_pvalue(t_stat_obs, dof - 1, tails)
 
             res_scaled, res_std = None, None
             if boot_method in ['residuals', 'semiparametric']:
@@ -1084,8 +1114,7 @@ def jtest_scipy(
             lam_se = res_aug.params['lam'].stderr
 
             t_stat_obs = float(res_aug.params['lam'].value / lam_se if lam_se else np.nan)
-            p_obs = float(stats.t.sf(np.abs(t_stat_obs), df=res_aug.nfree) * 2) if not np.isnan(
-                t_stat_obs) else np.nan
+            p_obs = _asymptotic_pvalue(t_stats_obs, res_aug.nfree, tails)
 
             res_scaled, res_std = None, None
             if boot_method in ['residuals', 'semiparametric']:
@@ -1128,16 +1157,8 @@ def jtest_scipy(
                 f"Unknown jtest_solver: {jtest_solver}. Supported options are hybrid-ols, scipy, 'lmfit'.")
 
         # 5. Bootstrap P-value
-        t_arr = np.array(t_stat_boot)
-        s_its = len(t_arr)
-        if s_its == 0 or np.isnan(t_stat_obs):
-            p_boot = np.nan
-        elif boot_tails == 'one':
-            p_boot = float((1 + np.sum(t_arr >= t_stat_obs)) / (1 + s_its))
-        elif boot_tails == 'two':
-            p_boot = float((1 + np.sum(np.abs(t_arr) >= np.abs(t_stat_obs))) / (1 + s_its))
-        else:
-            raise ValueError("boot_tails option must be 'one' or 'two'.")
+        t_arr = np.asarray(t_stat_boot, dtype=float)
+        p_boot, s_its = _bootstrap_pvalue(t_stat_obs, t_arr, tails)
 
         return t_stat_obs, p_obs, p_boot, s_its, t_arr, res_null, y_h_null
 
