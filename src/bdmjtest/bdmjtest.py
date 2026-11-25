@@ -100,7 +100,7 @@ def _validate_tails(tails:str) -> TailsOption:
     """Validate tail specification"""
     if tails not in _VALID_TAILS:
         raise ValueError(f"Tails must be on of {_VALID_TAILS}, got {tails!r}.")
-    retrun tails
+    return tails
 
 def _asymptotic_pvalue(
     t_asy: float,
