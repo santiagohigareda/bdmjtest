@@ -38,6 +38,7 @@ WILD_DISTS = ["rademacher", "mammen", "webb", "normal"]
 NP_SOLVERS = ["qr", "lstsq"]
 SM_SOLVERS = ["auto", "qr", "pinv"]
 SCIPY_SOLVERS = ["hybrid-ols", "scipy"]
+TAILS = ["two", "equal", "one"]
 
 # 4. Test Cases
 @pytest.mark.parametrize("boot_method", BOOT_METHODS)
@@ -137,7 +138,59 @@ def test_optional_returns_matrix(synthetic_data, flags):
     if ret_fit: assert res.fitted_X is not None
     if ret_t: assert res.t_boot_X is not None
 
+# 5. Tails Parameter Tests
+@pytest.mark.parametrize("tails", TAILS)
+def test_tails_all_backends(synthetic_data, tails):
+    y, X, Z = synthetic_data
 
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        res_np = jtest_np(y, X, Z, B=19, boot_method="wild", tails=tails, seed=42)
+        res_sm = jtest_sm(y, X, Z, B=19, boot_method="wild", tails=tails, seed=42)
+        res_sp = jtest_scipy(
+            y=y, X=X, Z=Z,
+            func_X=lin_func_X, func_Z=lin_func_Z,
+            B=19, boot_method="wild", tails=tails,
+            p0_X=[1, 1, 1], p0_Z=[1, 1, 1], seed=42
+        )
+
+    for res in (res_np, res_sm, res_sp):
+        assert isinstance(res, JtestResults)
+        assert 0.0 <= res.p_asy_X <= 1.0
+        assert 0.0 <= res.p_boot_X <= 1.0
+
+
+def test_tails_default_is_two(synthetic_data):
+    y, X, Z = synthetic_data
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        res_default = jtest_np(y, X, Z, B=19, boot_method="wild", seed=42)
+        res_two = jtest_np(y, X, Z, B=19, boot_method="wild", tails="two", seed=42)
+
+    assert res_default.p_asy_X == pytest.approx(res_two.p_asy_X)
+    assert res_default.p_boot_X == pytest.approx(res_two.p_boot_X)
+
+
+@pytest.mark.parametrize("invalid_tails", ["two-sided", "left", "", None])
+def test_invalid_tails_raises_value_error(synthetic_data, invalid_tails):
+    y, X, Z = synthetic_data
+
+    with pytest.raises(ValueError):
+        jtest_np(y, X, Z, B=19, boot_method="wild", tails=invalid_tails)
+
+    with pytest.raises(ValueError):
+        jtest_sm(y, X, Z, B=19, boot_method="wild", tails=invalid_tails)
+
+    with pytest.raises(ValueError):
+        jtest_scipy(
+            y=y, X=X, Z=Z,
+            func_X=lin_func_X, func_Z=lin_func_Z,
+            B=19, boot_method="wild", tails=invalid_tails,
+            p0_X=[1, 1, 1], p0_Z=[1, 1, 1]
+        )
+
+# 6. Input Validation Tests
 @pytest.mark.parametrize("invalid_B", [0, -5])
 def test_invalid_B_raises_value_error(synthetic_data, invalid_B):
     y, X, Z = synthetic_data
@@ -169,4 +222,3 @@ def test_invalid_solver_np(synthetic_data):
         warnings.simplefilter("ignore", UserWarning)
         with pytest.raises(ValueError, match="Unknown solver"):
             jtest_np(y, X, Z, B=10, boot_method="wild", solver="cholesky")
-          
