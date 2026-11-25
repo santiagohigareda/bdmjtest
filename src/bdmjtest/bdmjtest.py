@@ -5,12 +5,15 @@ import numpy as np
 import scipy.stats as stats
 import statsmodels.api as sm
 from scipy.optimize import curve_fit
+
 # Optional import for lmfit solver
 try:
     from lmfit import Model
+
     HAS_LMFIT = True
 except ImportError:
     HAS_LMFIT = False
+
 
 @dataclass
 class JtestResults:
@@ -37,16 +40,16 @@ class JtestResults:
     # Primary variables
 
     # Model H1 as null Hypothesis (H1 vs H2)
-    t_asy_X : float = np.nan
-    p_asy_X : float = np.nan
-    p_boot_X : float = np.nan
-    s_its_X : int = 0
+    t_asy_X: float = np.nan
+    p_asy_X: float = np.nan
+    p_boot_X: float = np.nan
+    s_its_X: int = 0
 
     # Model H2 as null Hypothesis (H2 vs H1)
-    t_asy_Z : float = np.nan
-    p_asy_Z : float = np.nan
-    p_boot_Z : float = np.nan
-    s_its_Z : int = 0
+    t_asy_Z: float = np.nan
+    p_asy_Z: float = np.nan
+    p_boot_Z: float = np.nan
+    s_its_Z: int = 0
 
     # Optional variables
     residuals_X: Optional[np.ndarray] = None
@@ -65,12 +68,12 @@ class JtestResults:
                 f")"
             )
         return (
-                f"JtestResults(\n"
-                f"  H1 vs. H2: | t-stat: {self.t_asy_X:.4f} | p-asy: {self.p_asy_X:.4f} | p-boot: {self.p_boot_X:.4f}\n"
-                f"  H2 vs. H1: | t-stat: {self.t_asy_Z:.4f} | p-asy: {self.p_asy_Z:.4f} | p-boot: {self.p_boot_Z:.4f}\n"
-                f"  Valid Iterations (X / Z): {self.s_its_X} / {self.s_its_Z}\n"
-                f")"
-            )
+            f"JtestResults(\n"
+            f"  H1 vs. H2: | t-stat: {self.t_asy_X:.4f} | p-asy: {self.p_asy_X:.4f} | p-boot: {self.p_boot_X:.4f}\n"
+            f"  H2 vs. H1: | t-stat: {self.t_asy_Z:.4f} | p-asy: {self.p_asy_Z:.4f} | p-boot: {self.p_boot_Z:.4f}\n"
+            f"  Valid Iterations (X / Z): {self.s_its_X} / {self.s_its_Z}\n"
+            f")"
+        )
 
     def summary(self, digits: int = 4) -> str:
         out = (
@@ -92,20 +95,23 @@ class JtestResults:
             )
         out += "================================================"
         return out
-        
+
+
 TailsOption = Literal['two', 'equal', 'one']
 _VALID_TAILS = ('two', 'equal', 'one')
 
-def _validate_tails(tails:str) -> TailsOption:
+
+def _validate_tails(tails: str) -> TailsOption:
     """Validate tail specification"""
     if tails not in _VALID_TAILS:
         raise ValueError(f"Tails must be on of {_VALID_TAILS}, got {tails!r}.")
     return tails
 
+
 def _asymptotic_pvalue(
-    t_asy: float,
-    dof: float,
-    tails: TailsOption = 'two'
+        t_asy: float,
+        dof: float,
+        tails: TailsOption = 'two'
 ) -> float:
     """Compute asymptotic p_value from a t-statistic"""
     if np.isnan(t_asy) or np.isnan(dof) or dof <= 0:
@@ -114,10 +120,11 @@ def _asymptotic_pvalue(
         return float(stats.t.sf(np.abs(t_asy), dof) * 2.0)
     return float(stats.t.sf(t_asy, dof))
 
+
 def _bootstrap_pvalue(
-    t_obs: float,
-    t_boot: Union[list, np.ndarray],
-    tails: TailsOption = 'two'
+        t_obs: float,
+        t_boot: Union[list, np.ndarray],
+        tails: TailsOption = 'two'
 ) -> Tuple[float, int]:
     """Compute bootstrap p-value and valid iteration count"""
     arr = np.asarray(t_boot, dtype=float)
@@ -134,7 +141,7 @@ def _bootstrap_pvalue(
         p_val = float(min(1.0, 2.0 * min(left, right)))
     else:
         p_val = float((1 + np.sum(arr >= t_obs)) / (1 + s_its))
-                      
+
     return p_val, s_its
 
 
@@ -184,6 +191,7 @@ def _calc_aug_reg(
     else:
         raise ValueError(f"Unknown solver: {solver}. Options are 'qr' and 'lstsq'.")
 
+
 def _setup_residual_scaling(
         res: np.ndarray,
         N: int,
@@ -229,6 +237,7 @@ def _setup_residual_scaling(
 
     return None, None
 
+
 # NumPy backend
 def jtest_np(
         y: np.ndarray,
@@ -248,40 +257,45 @@ def jtest_np(
 
     Parameters
     ----------
-    y : array-like of shape (N,)
+    y : array-like of shape ``(N,)``
         Dependent variable vector.
-    X : array-like of shape (N, k1) or (N,)
-        Explanatory variables under the null hypothesis (H1).
-    Z : array-like of shape (N, k2) or (N,)
-        Explanatory variables under the alternative hypothesis (H2).
+    X : array-like of shape ``(N, k1)`` or ``(N,)``
+        Explanatory variables under the null hypothesis (``H1``).
+    Z : array-like of shape ``(N, k2)`` or ``(N,)``
+        Explanatory variables under the alternative hypothesis (``H2``).
     B : int, default=999
         Number of bootstrap replications.
-    boot_method : {'residuals' ('semiparametric') 'wild', 'parametric', 'pairs'}, default='residuals'
+    boot_method : {'residuals' ('semiparametric'), 'wild', 'parametric', 'pairs'}, default='residuals'
         Bootstrap Data Generation Process (DGP) method.
     direction : {'pairwise', 'one-way'}, default='pairwise'
-        If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
-        If 'one-way', evaluates only H1 vs H2.
-    tails: {'two', 'equal', 'one'}, default='two'
+        If ``'pairwise'``, evaluates both directions (``H1 vs H2`` and ``H2 vs H1``).
+        If ``'one-way'``, evaluates only ``H1`` vs ``H2``.
+    tails : {'two', 'equal', 'one'}, default='two'
         Tail specification for asymptotic and bootstrap p-values:
-        - 'two' : Symmetric two-tailed p-value.
-        - 'equal' : Equal-tail two-sided p-value.
-        - 'one' : Upper one-tailed p-value.
-    solver: {'qr', 'lstsq'}, default='qr'
+
+        - ``'two'`` : Symmetric two-tailed p-value.
+        - ``'equal'`` : Equal-tail two-sided p-value.
+        - ``'one'`` : Upper one-tailed p-value.
+
+    solver : {'qr', 'lstsq'}, default='qr'
         Numerical solver engine:
-        - 'qr' : Householder QR decomposition for full-rank matrices.
-        - 'lstsq' : Singular Value Decomposition (SVD) based least squares for rank-deficient matrices.
+
+        - ``'qr'`` : Householder QR decomposition for full-rank matrices.
+        - ``'lstsq'`` : Singular Value Decomposition (SVD) based least squares for rank-deficient matrices.
+
     seed : int, default=None
         Random seed for reproducible bootstrap sampling.
     **kwargs : dict
         Optional controls:
-        - return_residuals (bool): Return H1 residuals (default: False).
-        - return_fitted (bool): Return H1 fitted values (default: False).
-        - res_distribution (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
-        - scaled_residuals (str): Residual transformation ('simple' or 'leverage').
-        - return_t_boot (bool): Return bootstrap t-statistics distributions (default: False).
+
+        - ``return_residuals`` (bool): Return H1 residuals (default: False).
+        - ``return_fitted`` (bool): Return H1 fitted values (default: False).
+        - ``res_distribution`` (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
+        - ``scaled_residuals`` (str): Residual transformation ('simple' or 'leverage').
+        - ``return_t_boot`` (bool): Return bootstrap t-statistics distributions (default: False).
 
     Returns
-    ----------
+    -------
     JtestResults
         Dataclass containing test statistics, p-values, and optional series.
     """
@@ -492,6 +506,7 @@ def jtest_np(
         fitted_Z=y2_h if (return_fitted and direction == 'pairwise') else None
     )
 
+
 def _fit_ols_sm(
         y: np.ndarray,
         X: np.ndarray,
@@ -518,54 +533,58 @@ def _fit_ols_sm(
         )
         return sm.OLS(y, X).fit(solve_method='pinv')
 
+
 # statsmodels.OLS backend
 def jtest_sm(
-    y: np.ndarray,
-    X: np.ndarray,
-    Z: np.ndarray,
-    B: int = 999,
-    boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
-    direction: Literal['pairwise', 'one-way'] = 'pairwise',
-    tails: TailsOption = 'two',
-    solver: Literal['auto', 'qr', 'pinv'] = 'pinv',
-    seed: Optional[Union[int, np.random.Generator]] = None,
-    **kwargs
+        y: np.ndarray,
+        X: np.ndarray,
+        Z: np.ndarray,
+        B: int = 999,
+        boot_method: Literal['residuals', 'semiparametric', 'wild', 'parametric', 'pairs'] = 'residuals',
+        direction: Literal['pairwise', 'one-way'] = 'pairwise',
+        tails: TailsOption = 'two',
+        solver: Literal['auto', 'qr', 'pinv'] = 'pinv',
+        seed: Optional[Union[int, np.random.Generator]] = None,
+        **kwargs
 ) -> JtestResults:
-    """Execute the Bootstrapped Davidson-MacKinnon J-test using statsmodels.OLS.
+    """Execute the Bootstrapped Davidson-MacKinnon J-test using statsmodels.
 
     Evaluates primary Model H1 (y on X) against non-nested alternative Model H2 (y on Z).
 
     Parameters
     ----------
-    y : array-like of shape (N,)
+    y : array-like of shape ``(N,)``
         Dependent variable vector.
-    X : array-like of shape (N, k1) or (N,)
-        Explanatory variables under Model H1.
-    Z : array-like of shape (N, k2) or (N,)
-        Explanatory variables under Model H2.
+    X : array-like of shape ``(N, k1)`` or ``(N,)``
+        Explanatory variables under Model ``H1``.
+    Z : array-like of shape ``(N, k2)`` or ``(N,)``
+        Explanatory variables under Model ``H2``.
     B : int, default=999
         Number of bootstrap replications.
     boot_method : {'residuals' ('semiparametric'), 'wild', 'parametric', 'pairs'}, default='residuals'
         Bootstrap Data Generation Process (DGP) method.
     direction : {'pairwise', 'one-way'}, default='pairwise'
-        If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
-        If 'one-way', evaluates only H1 vs H2.
-    tails: {'two', 'equal', 'one'}, default='two'
+        If ``'pairwise'``, evaluates both directions (``H1 vs H2`` and ``H2 vs H1``).
+        If ``'one-way'``, evaluates only ``H1`` vs ``H2``.
+    tails : {'two', 'equal', 'one'}, default='two'
         Tail specification for asymptotic and bootstrap p-values:
-        - 'two' : Symmetric two-tailed p-value
-        - 'equal' : Equal-tail two-sided p-value
-        - 'one' : Upper one-tailed p-value
-    solver: {'auto', 'qr', 'pinv'}, default=pinv
-        Solver passed to statsmodels.OLS.
+
+        - ``'two'`` : Symmetric two-tailed p-value
+        - ``'equal'`` : Equal-tail two-sided p-value
+        - ``'one'`` : Upper one-tailed p-value
+
+    solver : {'auto', 'qr', 'pinv'}, default='pinv'
+        Solver passed to ``statsmodels.OLS``.
     seed : int, default=None
         Random seed for reproducible bootstrap sampling.
     **kwargs : dict
         Optional controls:
-        - return_residuals (bool): Return H1 residuals (default: False).
-        - return_fitted (bool): Return H1 fitted values (default: False).
-        - res_distribution (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
-        - scaled_residuals (str): Residual scaling method ('simple' or 'leverage').
-        - return_t_boot (bool): Return bootstrap t-statistics distributions (default: False).
+
+        - ``return_residuals`` (bool): Return H1 residuals (default: False).
+        - ``return_fitted`` (bool): Return H1 fitted values (default: False).
+        - ``res_distribution`` (str): Auxiliary distribution for wild bootstrap ('rademacher', 'mammen', 'webb', 'normal').
+        - ``scaled_residuals`` (str): Residual scaling method ('simple' or 'leverage').
+        - ``return_t_boot`` (bool): Return bootstrap t-statistics distributions (default: False).
 
     Returns
     -------
@@ -634,7 +653,6 @@ def jtest_sm(
         t_asy_Z = float(m_aug_Z.tvalues[-1])
         p_asy_Z = _asymptotic_pvalue(t_asy_Z, float(m_aug_Z.df_resid), tails)
 
-
     # 3. Residual scaling and bootstrap setup
     def _setup_sm_residual_scaling(m, res_y, dof_h):
         if boot_method in ['residuals', 'semiparametric']:
@@ -673,7 +691,7 @@ def jtest_sm(
             if res_distribution == 'rademacher':
                 v = rng.choice([-1.0, 1.0], size=N, replace=True)
             elif res_distribution == 'mammen':
-                v_vals = [-(np.sqrt(5)-1) / 2, (np.sqrt(5)+1) / 2]
+                v_vals = [-(np.sqrt(5) - 1) / 2, (np.sqrt(5) + 1) / 2]
                 v_probs = [(np.sqrt(5) + 1) / (2 * np.sqrt(5)), (np.sqrt(5) - 1) / (2 * np.sqrt(5))]
                 v = rng.choice(v_vals, size=N, replace=True, p=v_probs)
             elif res_distribution == 'webb':
@@ -693,7 +711,6 @@ def jtest_sm(
             return y_null_fit + rng.normal(loc=0.0, scale=res_std, size=N)
 
         raise ValueError(f"Invalid boot method: {boot_method}.")
-
 
     # 4. Bootstrap loop
     t_boot_X_list, t_boot_Z_list = [], []
@@ -774,6 +791,26 @@ def jtest_sm(
         fitted_Z=y2_h if (return_fitted and direction == 'pairwise') else None
     )
 
+def _compute_jacobian(
+        func: Callable,
+        x: np.ndarray,
+        params: np.ndarray,
+        eps: float = 1e-6
+) -> np.ndarray:
+    """Central finite-difference Jacobian."""
+    params = np.asarray(params, dtype=float)
+    f0 = np.asarray(func(x, *params)).ravel()
+    J = np.empty((f0.size, params.size), dtype=float)
+    for j in range(params.size):
+        step = eps * max(abs(params[j]), 1.0)
+        p_plus = params.copy()
+        p_minus = params.copy()
+        p_plus[j] += step
+        p_minus[j] -= step
+        f_plus = np.asarray(func(x, *p_plus)).ravel()
+        f_minus = np.asarray(func(x, *p_minus)).ravel()
+        J[:, j] = (f_plus - f_minus) / (2.0 * step)
+    return J
 
 # SciPy backend (+ statsmodels.OLS and LMFIT)
 def jtest_scipy(
@@ -793,101 +830,95 @@ def jtest_scipy(
         seed: Optional[Union[int, np.random.Generator]] = None,
         **kwargs: Any
 ) -> JtestResults:
-    """Perform the Bootstrapped Davidson-MacKinnon J-test for linear and non-linear regression models. Uses a SciPy backend.
+    r"""Perform the Bootstrapped Davidson-MacKinnon J-test for linear and non-linear regression models. Uses a SciPy backend.
 
     Evaluates primary non-linear Model H1 (funx_X) against non-nested alternative
     Model H2 (func_Z) across multiple backend solvers ('Hybrid statsmodels.OLS - SciPy.curve_fit', 'scipy.curve_fit', 'LMFIT').
 
     Parameters
     ----------
-    y : array-like of shape (N,)
+    y : array-like of shape ``(N,)``
         Dependent variable vector.
-    X : array-like of shape (N, k1) or (N,)
-        Explanatory variables under Model H1.
-    Z : array-like of shape (N, k2) or (N,)
-        Explanatory variables under Model H2.
+    X : array-like of shape ``(N, k1)`` or ``(N,)``
+        Explanatory variables under Model ``H1``.
+    Z : array-like of shape ``(N, k2)`` or ``(N,)``
+        Explanatory variables under Model ``H2``.
     func_X : callable
-        Model function for H1:
-        - For 'hybrid-ols' & 'scipy': `f(x, *params)` expecting positional arguments.
-        - For 'lmfit': `f(x, param1, param2, ...)` expecting named keyword arguments.
+        Model function for ``H1``:
+
+        - For ``'hybrid-ols'`` & ``'scipy'``: ``f(x, *params)`` expecting positional arguments.
+        - For ``'lmfit'``: ``f(x, param1, param2, ...)`` expecting named keyword arguments.
+
     func_Z : callable
-        Model function for H2 (same signature requirements as `func_X`).
+        Model function for ``H2`` (same signature requirements as ``func_X``).
     p0_X : list, np.ndarray, or dict, optional
-        Initial parameter values for Model H1:
-        - `list`/`np.ndarray` for 'hybrid-ols' and 'scipy' (e.g., `[1.0, 0.5]`)
-        - `dict` for 'lmfit' (e.g., `{'alpha': 1.0, 'beta': 0.5}`)
+        Initial parameter values for Model ``H1``:
+
+        - ``list`` / ``np.ndarray`` for ``'hybrid-ols'`` and ``'scipy'`` (e.g., ``[1.0, 0.5]``)
+        - ``dict`` for ``'lmfit'`` (e.g., ``{'alpha': 1.0, 'beta': 0.5}``)
+
     p0_Z : list, np.ndarray, or dict, optional
-        Initial parameter values for Model H2 (same formatting rules as `p0_X`).
+        Initial parameter values for Model ``H2`` (same formatting rules as ``p0_X``).
     B : int, default=999
         Number of bootstrap replications.
     boot_method : {'pairs', 'residuals' ('semiparametric'), 'wild', 'parametric'}, default='pairs'
         Bootstrap Data Generation Process (DGP) method.
     direction : {'pairwise', 'one-way'}, default='pairwise'
-        If 'pairwise', evaluates both directions (H1 vs H2 and H2 vs H1).
-        If 'one-way', evaluates only H1 vs H2.
-    tails: {'two', 'equal', 'one'}, default='two'
+        If ``'pairwise'``, evaluates both directions (H1 vs H2 and H2 vs H1).
+        If ``'one-way'``, evaluates only H1 vs H2.
+    tails : {'two', 'equal', 'one'}, default='two'
         Tail specification for asymptotic and bootstrap p-values:
-        - 'two' : Symmetric two-tailed p-value.
-        - 'equal' : Equal-tail two-sided p-value.
-        - 'one' : Upper one-tailed p-value.
+
+        - ``'two'`` : Symmetric two-tailed p-value.
+        - ``'equal'`` : Equal-tail two-sided p-value.
+        - ``'one'`` : Upper one-tailed p-value.
+
     jtest_solver : {'hybrid-ols', 'scipy', 'lmfit'}, default='hybrid-ols'
         Computational engine used to estimate the baseline models and test parameter:
-        * 'hybrid-ols'   : Hybrid approach. Baseline fits via `scipy.optimize.curve_fit`;
-                    auxiliary J-test regression solved via `statsmodels.api.OLS`.
-        * 'scipy' : Pure Non-linear Least Squares (NLS) pipeline using
-                    `scipy.optimize.curve_fit` for both baseline and augmented models.
-        * 'lmfit' : Symbolic, parameter-based optimization pipeline using `lmfit.Model`.
+
+        * ``'hybrid-ols'`` : Fits baseline nonlinear models via ``scipy.optimize.curve_fit``,
+          then computes the Davidson-MacKinnon (1981) P-test via Gauss-Newton Regression
+          (GNR), regressing :math:`y - \hat{f}` on :math:`[\hat{F}, \hat{g} - \hat{f}]`
+          via ``statsmodels.OLS``, where :math:`\hat{F}` is the central finite-difference
+          Jacobian of :math:`f_{\text{null}}`.
+        * ``'scipy'`` : Pure Non-linear Least Squares (NLS) pipeline using
+          ``scipy.optimize.curve_fit`` for both baseline and augmented models.
+        * ``'lmfit'`` : Estimates both baseline models and the compound nonlinear regression
+          via ``lmfit.Model`` (requires optional dependency ``lmfit``).
+
     curvefitmethod : str or None, default=None
-        Optimization method passed to `scipy.optimize.curve_fit` (e.g., 'lm', 'trf', 'dogbox').
+        Optimization method passed to ``scipy.optimize.curve_fit`` (e.g., 'lm', 'trf', 'dogbox').
         If None, SciPy automatically selects 'lm' for unconstrained problems or 'trf' if bounds are present.
     seed : int, default=None
         Random seed for reproducible bootstrap sampling.
-        
-    Other Parameters
+
+    Global Parameters
     ----------------
     **kwargs : dict
         Solver-specific and general execution controls:
 
         *Global / Bootstrap Controls:*
-        - res_distribution : {'rademacher', 'mammen', 'webb', 'normal'}, default='rademacher'
+
+        - ``res_distribution`` : {'rademacher', 'mammen', 'webb', 'normal'}, default='rademacher'
             Auxiliary distribution for wild bootstrap resampling.
-        - return_residuals : bool, default=False
-            If True, populates `residuals` in the returned `JtestResults`.
-        - return_fitted : bool, default=False
-            If True, populates `fitted` in the returned `JtestResults`.
-        - return_t_boot (bool): default=False
+        - ``return_residuals`` : bool, default=False
+            If True, populates ``residuals`` in the returned ``JtestResults``.
+        - ``return_fitted`` : bool, default=False
+            If True, populates ``fitted`` in the returned ``JtestResults``.
+        - ``return_t_boot`` : bool, default=False
             Return bootstrap t-statistics distributions.
 
     Returns
     -------
     JtestResults
         Dataclass containing:
-        - t_asy (float) : Observed J-test t-statistic.
-        - p_asy (float) : Asymptotic p-value based on Student's t-distribution.
-        - p_boot (float): Empirical bootstrap p-value across valid iterations.
-        - s_its (float) : Number of successful bootstrap iterations completed.
-        - residuals (np.ndarray, optional): Null model residuals (if requested).
-        - fitted (np.ndarray, optional)   : Null model fitted values (if requested).
 
-    Backend Solver Comparison
-    -------------------------
-    +--------------+-----------------------+--------------------------+----------------------------+
-    | Solver       | Baseline Engine       | J-Test Regression Engine | Parameter Initializer (p0) |
-    +==============+=======================+==========================+============================+
-    | 'hybrid-ols' | scipy.curve_fit       | statsmodels.OLS          | List / Array               |
-    +--------------+-----------------------+--------------------------+----------------------------+
-    | 'scipy'      | scipy.curve_fit       | scipy.curve_fit (NLS)    | List / Array               |
-    +--------------+-----------------------+--------------------------+----------------------------+
-    | 'lmfit'      | lmfit.Model           | lmfit.Model              | Dict ({'param': val})      |
-    +--------------+-----------------------+--------------------------+----------------------------+
-
-    Notes
-    -----
-    1. **'hybrid-ols' Backend**: Fast and robust. It converts the non-linear J-test into a linear augmented regression, avoiding full non-linear convergence issues
-       during the bootstrap loop.
-    2. **'scipy' Backend**: Preserves the non-linear nature of Model H1 in the augmented regression.
-    3. **'lmfit' Backend**: Requires the `lmfit` package. Enables parameter naming,
-       bounds, and advanced symbolic constraints, but expects keyword-based callables.
+        - ``t_asy`` (float) : Observed J-test t-statistic.
+        - ``p_asy`` (float) : Asymptotic p-value based on Student's t-distribution.
+        - ``p_boot`` (float) : Empirical bootstrap p-value across valid iterations.
+        - ``s_its`` (float) : Number of successful bootstrap iterations completed.
+        - ``residuals`` (np.ndarray, optional) : Null model residuals (if requested).
+        - ``fitted`` (np.ndarray, optional) : Null model fitted values (if requested).
     """
 
     if B <= 0:
@@ -914,8 +945,9 @@ def jtest_scipy(
     res_distribution: str = kwargs.get('res_distribution', 'rademacher')
     return_t_boot: bool = kwargs.get('return_t_boot', False)
 
-     # Determine optimization method for scipy.curve_fit
-    cf_method = curvefitmethod if curvefitmethod is not None else kwargs.get('curvefitmethod', kwargs.get('method', None))
+    # Determine optimization method for scipy.curve_fit
+    cf_method = curvefitmethod if curvefitmethod is not None else kwargs.get('curvefitmethod',
+                                                                             kwargs.get('method', None))
 
     rng = np.random.default_rng(seed)
 
@@ -968,18 +1000,19 @@ def jtest_scipy(
             p0_alt: Any
     ) -> Tuple[float, float, float, int, np.ndarray, np.ndarray, np.ndarray]:
 
-        # Hybrid-OLS: Base models fitted via SciPy with statmodels.OLS augmented regression
+        # Hybrid-OLS: Davidson-MacKinnon P-test / Gauss-Newton Regression (GNR)
         if jtest_solver == 'hybrid-ols':
             popt_null, _ = curve_fit(f_null, x_null, y_f, p0=p0_null, method=cf_method)
             y_h_null = f_null(x_null, *popt_null)
+            F_hat = _compute_jacobian(f_null, x_null, popt_null)
             res_null = y_f - y_h_null
             dof = N - len(popt_null)
 
             popt_alt, _ = curve_fit(f_alt, x_alt, y_f, p0=p0_alt, method=cf_method)
             y_h_alt = np.asarray(f_alt(x_alt, *popt_alt)).ravel()
 
-            X_aug = sm.add_constant(np.column_stack([x_null, y_h_alt]))
-            j_model = sm.OLS(y_f, X_aug).fit()
+            X_gnr = np.column_stack([F_hat, y_h_alt - y_h_null])
+            j_model = sm.OLS(res_null, X_gnr).fit()
             t_stat_obs = float(j_model.tvalues[-1])
             p_obs = _asymptotic_pvalue(t_stat_obs, float(j_model.df_resid), tails)
 
@@ -1001,15 +1034,21 @@ def jtest_scipy(
                         x_alt_b = x_alt[b_idx] if x_alt.ndim == 1 else x_alt[b_idx, :]
                         y_b = y_f[b_idx]
 
+                        popt_null_b, _ = curve_fit(f_null, x_null_b, y_b, p0=popt_null, method=cf_method)
+                        y_h_null_b = np.asarray(f_null(x_null_b, *popt_null_b)).ravel()
+                        F_hat_b = _compute_jacobian(f_null, x_null_b, popt_null_b)
+
                     else:
-                        x_null_b, x_alt_b = x_null, x_alt
+                        x_alt_b = x_alt
                         y_b = generate_y_star(y_h_null, res_scaled, res_std)
+                        y_h_null_b = y_h_null
+                        F_hat_b = F_hat
 
                     popt_alt_b, _ = curve_fit(f_alt, x_alt_b, y_b, p0=p0_alt, method=cf_method)
                     y_h_alt_b = np.asarray(f_alt(x_alt_b, *popt_alt_b)).ravel()
 
-                    X_aug_b = sm.add_constant(np.column_stack((x_null_b, y_h_alt_b)))
-                    j_model_b = sm.OLS(y_b, X_aug_b).fit()
+                    X_gnr_b = np.column_stack([F_hat_b, y_h_alt_b - y_h_null_b])
+                    j_model_b = sm.OLS(y_b - y_h_null_b, X_gnr_b).fit()
 
                     t_b = float(j_model_b.tvalues[-1])
                     t_stat_boot.append(t_b - t_stat_obs if boot_method == 'pairs' else t_b)
@@ -1030,13 +1069,15 @@ def jtest_scipy(
                     base_model_func: Callable,
                     competitor_fitted: np.ndarray,
             ) -> Callable:
-                return lambda x, *terms: base_model_func(x, *terms[:-1]) + terms[-1] * competitor_fitted
+                return lambda x, *terms: (
+                            (1.0 - terms[-1]) * base_model_func(x, *terms[:-1]) + terms[-1] * competitor_fitted)
 
             model_aug = make_augmented_model(f_null, y_h_alt)
             popt_aug, pcov_aug = curve_fit(model_aug, x_null, y_f, p0=[*popt_null, 0.0], method=cf_method)
 
             try:
-                se_aug = np.sqrt(np.abs(pcov_aug[-1, -1]))
+                var_aug = pcov_aug[-1, -1]
+                se_aug = float(np.sqrt(var_aug)) if np.isfinite(var_aug) and var_aug > 0 else np.nan
             except (IndexError, TypeError):
                 se_aug = np.nan
 
@@ -1072,7 +1113,8 @@ def jtest_scipy(
                                                        method=cf_method)
 
                     try:
-                        se_b = np.sqrt(np.abs(pcov_aug_b[-1, -1]))
+                        var_b = pcov_aug_b[-1, -1]
+                        se_b = float(np.sqrt(var_b)) if np.isfinite(var_b) and var_b > 0 else np.nan
                     except (IndexError, TypeError):
                         se_b = np.nan
 
@@ -1109,7 +1151,7 @@ def jtest_scipy(
                     base_func: Callable,
                     fitted_alt: np.ndarray
             ) -> Callable:
-                return lambda x, lam=0.0, **params: base_func(x, **params) + lam * fitted_alt
+                return lambda x, lam=0.0, **params: (1.0 - lam) * base_func(x, **params) + lam * fitted_alt
 
             aug_func = make_lmfit_augmented(f_null, res_alt.best_fit)
             model_aug = Model(aug_func)
